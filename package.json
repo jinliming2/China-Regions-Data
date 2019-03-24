@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "jsdom": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest"
+  }
+}
