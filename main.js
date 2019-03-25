@@ -26,7 +26,7 @@ const DNS_SERVER = '114.114.114.114';  // 114 公共 IPv4 DNS 服务
 // const DNS_SERVER = '2001:4860:4860::8888';  // Google 公共 IPv6 DNS 服务
 const TIMEOUT = 5e3;  // 5 秒
 const RETRY = 10;  // 单个请求失败自动重试次数
-const SAVE_PATH = path.join(__dirname, `data-${2018}.json`);
+const SAVE_PATH = path.join(__dirname, `data-${YEAR}.json`);  // 存储路径
 
 const request = SCHEMA === 'http' ? require('http') : require('https');
 const DateTimeFormatter = new Intl.DateTimeFormat(undefined, {
