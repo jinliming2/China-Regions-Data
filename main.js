@@ -14,17 +14,17 @@ const SCHEMA = 'http';
 const DOMAIN = 'www.stats.gov.cn';  // 国家统计局
 const PATH = '/tjsj/tjbz/tjyqhdmhcxhfdm';  // 统计数据 / 统计标准 / 统计用区划代码和城乡划分代码
 const YEAR = 2018;  // 更新于 2019-01-31
-// const LEVEL = ['province'];  // 爬取层级，省
-// const LEVEL = ['province', 'city'];  // 爬取层级，市
-const LEVEL = ['province', 'city', 'county'];  // 爬取层级，区
-// const LEVEL = ['province', 'city', 'county', 'town'];  // 爬取层级，街道
-// const LEVEL = ['province', 'city', 'county', 'town', 'village'];  // 爬取层级，居委会
+// const LEVEL = ['province'];  // 爬取层级，省，结果大约 1K，耗时 1 秒左右
+// const LEVEL = ['province', 'city'];  // 爬取层级，市，结果大约 12K，耗时 2 秒左右
+// const LEVEL = ['province', 'city', 'county'];  // 爬取层级，区，结果大约 128K，耗时 15 秒左右
+const LEVEL = ['province', 'city', 'county', 'town'];  // 爬取层级，街道，结果大约 1.8M，耗时 3.5 分钟左右
+// const LEVEL = ['province', 'city', 'county', 'town', 'village'];  // 爬取层级，居委会，结果大约 40M，耗时 30 分钟左右
 const DNS_TYPE = 'A';  // 使用 IPv4 请求
 // const DNS_TYPE = 'AAAA';  // 使用 IPv6 请求
 // const DNS_SERVER = '8.8.8.8';  // Google 公共 IPv4 DNS 服务
 const DNS_SERVER = '114.114.114.114';  // 114 公共 IPv4 DNS 服务
 // const DNS_SERVER = '2001:4860:4860::8888';  // Google 公共 IPv6 DNS 服务
-const TIMEOUT = 30e3;  // 30 秒
+const TIMEOUT = 5e3;  // 5 秒
 const RETRY = 10;  // 单个请求失败自动重试次数
 const SAVE_PATH = path.join(__dirname, `data-${2018}.json`);
 
@@ -39,6 +39,11 @@ let progress = '0.0000';
 const log = (...args) => console.timeLog('Info', util.inspect(DateTimeFormatter.format(), { colors: true }), `${progress}%`, ...args);
 const error = (...args) => console.trace(util.inspect(DateTimeFormatter.format(), { colors: true }), `${progress}%`, ...args);
 
+const requestAgent = new request.Agent({
+  keepAlive: true,
+  timeout: TIMEOUT,
+});
+
 /**
  * GET 请求指定路径，路径前缀固定
  * @param {string} IP
@@ -50,10 +55,11 @@ const fetchPath = async (IP, urlPath) => new Promise((resolve, reject) => {
   const getPath = [PATH, YEAR, urlPath].join('/');
   const url = `${SCHEMA}://${DOMAIN}${getPath}`;
   log(`GET: ${url}`);
-  request.get({
+  const req = request.get({
     host: IP,
     path: getPath,
     headers: { host: DOMAIN },
+    agent: requestAgent,
     timeout: TIMEOUT,
     setHost: false,
   }, response => {
@@ -63,12 +69,21 @@ const fetchPath = async (IP, urlPath) => new Promise((resolve, reject) => {
     }
     const body = [];
     response.on('data', chunk => body.push(chunk));
-    response.on('end', () => resolve(new jsdom.JSDOM(Buffer.concat(body), {
-      url,
-      contentType: response.headers['content-type'],
-    }).window));
+    response.on('end', () => {
+      const buf = Buffer.concat(body);
+      if (buf.length === 0) {
+        reject(new Error('请求出错，数据长度为 0！'));
+        return;
+      }
+      resolve(new jsdom.JSDOM(buf, {
+        url,
+        contentType: response.headers['content-type'],
+      }).window);
+    });
     response.on('error', err => reject(new Error(`请求出错，${err}`)));
-  }).on('error', err => reject(new Error(`请求出错，${err}`)));
+  });
+  req.on('error', err => reject(new Error(`请求出错，${err}`)));
+  req.setTimeout(TIMEOUT, req.destroy);
 });
 
 /**
@@ -278,12 +293,12 @@ const getChildren = async (IP, index, jobId = '', id = '') => {
  * @param {Jobs} jobs
  * @param {number[][]} doneJob
  * @param {number} index
- * @param {fs.WriteStream} stream
+ * @param {function(data)} write
  * @param {string} IP
  * @param {string=} jobId
  * @param {[number, number]=} progressRatio
  */
-const doJob = async (jobs, doneJob, index, stream, IP, jobId = '', progressRatio = [0, 100]) => {
+const doJob = async (jobs, doneJob, index, write, IP, jobId = '', progressRatio = [0, 100]) => {
   if (index >= LEVEL.length) {
     return;
   }
@@ -304,21 +319,21 @@ const doJob = async (jobs, doneJob, index, stream, IP, jobId = '', progressRatio
       // 已写出当前节点
       const comma = job === jobs[0] ? '' : ',';
       const type = job.type ? `,"type":${job.type}` : '';
-      const children = hasChildren ? `,"children":[` : '';
-      stream.write(`${comma}{"name":"${job.name}","id":${job.id}${type}${children}`);
+      const children = (hasChildren && job.url) ? `,"children":[` : '';
+      await write(`${comma}{"name":"${job.name}","id":${job.id}${type}${children}`);
     }
     // 进入下一级节点
     if (hasChildren && job.url) {
       job.children = await getChildren(IP, index + 1, jobId, job.id.toString(10));
-      await doJob(job.children, doneJob, index + 1, stream, IP, job.id.toString(10), [
+      await doJob(job.children, doneJob, index + 1, write, IP, job.id.toString(10), [
         progressIndex / jobs.length * progressRatio[1] + progressRatio[0],
         progressRatio[1] / jobs.length,
       ]);
     }
-    stream.write(`}`);
+    await write('}');
     progress = (++progressIndex / jobs.length * progressRatio[1] + progressRatio[0]).toFixed(4);
   }
-  stream.write(']');
+  await write(']');
 };
 
 (async () => {
@@ -346,10 +361,22 @@ const doJob = async (jobs, doneJob, index, stream, IP, jobId = '', progressRatio
     autoClose: true,
     start: position,
   });
+  const write = async chunk => new Promise(resolve => {
+    const ret = writeStream.write(chunk, 'utf8', err => {
+      if (err) {
+        error(`写出出错！${err}`);
+      }
+    });
+    if (ret) {
+      process.nextTick(resolve);
+    } else {
+      writeStream.once('drain', resolve);
+    }
+  });
   if (position === 0) {
-    writeStream.write('[');
+    await write('[');
   }
-  await doJob(jobs, doneJob, 0, writeStream, IP);
+  await doJob(jobs, doneJob, 0, write, IP);
   writeStream.close();
   log('任务完成！');
 })().catch(e => {
