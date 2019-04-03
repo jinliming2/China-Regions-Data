@@ -1,1 +1,6 @@
 node_modules
+*.json
+
+# 不要 lock，装最新版本的包就行，package.json 里也写的是 latest
+yarn.lock
+package-lock.json

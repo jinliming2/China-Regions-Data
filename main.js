@@ -10,15 +10,17 @@ console.time('Info');
 const fsAccess = util.promisify(fs.access);
 const fsMkdir = util.promisify(fs.mkdir);
 
+// ****************************************************************************************************************
+// 配置 Configuration
 const SCHEMA = 'http';
 const DOMAIN = 'www.stats.gov.cn';  // 国家统计局
 const PATH = '/tjsj/tjbz/tjyqhdmhcxhfdm';  // 统计数据 / 统计标准 / 统计用区划代码和城乡划分代码
 const YEAR = 2018;  // 更新于 2019-01-31
 // const LEVEL = ['province'];  // 爬取层级，省，结果大约 1K，耗时 1 秒左右
-// const LEVEL = ['province', 'city'];  // 爬取层级，市，结果大约 12K，耗时 2 秒左右
-// const LEVEL = ['province', 'city', 'county'];  // 爬取层级，区，结果大约 128K，耗时 15 秒左右
-const LEVEL = ['province', 'city', 'county', 'town'];  // 爬取层级，街道，结果大约 1.8M，耗时 3.5 分钟左右
-// const LEVEL = ['province', 'city', 'county', 'town', 'village'];  // 爬取层级，居委会，结果大约 40M，耗时 30 分钟左右
+// const LEVEL = ['province', 'city'];  // 爬取层级，地，结果大约 12K，耗时 2 秒左右
+// const LEVEL = ['province', 'city', 'county'];  // 爬取层级，县，结果大约 128K，耗时 15 秒左右
+const LEVEL = ['province', 'city', 'county', 'town'];  // 爬取层级，乡，结果大约 1.8M，耗时 3.5 分钟左右
+// const LEVEL = ['province', 'city', 'county', 'town', 'village'];  // 爬取层级，村，结果大约 40M，耗时 30 分钟左右
 const DNS_TYPE = 'A';  // 使用 IPv4 请求
 // const DNS_TYPE = 'AAAA';  // 使用 IPv6 请求
 // const DNS_SERVER = '8.8.8.8';  // Google 公共 IPv4 DNS 服务
@@ -27,6 +29,7 @@ const DNS_SERVER = '114.114.114.114';  // 114 公共 IPv4 DNS 服务
 const TIMEOUT = 5e3;  // 5 秒
 const RETRY = 10;  // 单个请求失败自动重试次数
 const SAVE_PATH = path.join(__dirname, `data-${YEAR}.json`);  // 存储路径
+// ****************************************************************************************************************
 
 const request = SCHEMA === 'http' ? require('http') : require('https');
 const DateTimeFormatter = new Intl.DateTimeFormat(undefined, {
