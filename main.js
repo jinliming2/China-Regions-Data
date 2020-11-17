@@ -256,6 +256,9 @@ const getChildren = async (IP, index, jobId = '', id = '') => {
       // Province
       for (const td of tr.querySelectorAll('td')) {
         const a = td.querySelector('a');
+        if (!a) {
+          continue;
+        }
         results.push({
           name: a.textContent.trim(),
           id: parseInt(path.basename(a.href)),  // '11.html' can parse to 11
