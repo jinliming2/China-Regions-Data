@@ -15,7 +15,7 @@ const fsMkdir = util.promisify(fs.mkdir);
 const SCHEMA = 'http';
 const DOMAIN = 'www.stats.gov.cn';  // 国家统计局
 const PATH = '/tjsj/tjbz/tjyqhdmhcxhfdm';  // 统计数据 / 统计标准 / 统计用区划代码和城乡划分代码
-const YEAR = 2018;  // 更新于 2019-01-31
+const YEAR = 2020;
 // const LEVEL = ['province'];  // 爬取层级，省，结果大约 1K，耗时 1 秒左右
 // const LEVEL = ['province', 'city'];  // 爬取层级，地，结果大约 12K，耗时 2 秒左右
 // const LEVEL = ['province', 'city', 'county'];  // 爬取层级，县，结果大约 128K，耗时 15 秒左右
@@ -28,7 +28,7 @@ const DNS_SERVER = '114.114.114.114';  // 114 公共 IPv4 DNS 服务
 // const DNS_SERVER = '2001:4860:4860::8888';  // Google 公共 IPv6 DNS 服务
 const TIMEOUT = 5e3;  // 5 秒
 const RETRY = 10;  // 单个请求失败自动重试次数
-const SAVE_PATH = path.join(__dirname, `data-${YEAR}.json`);  // 存储路径
+const SAVE_PATH = path.join(__dirname, `data-${YEAR}-${LEVEL.length}-${LEVEL[LEVEL.length - 1]}.json`);  // 存储路径
 // ****************************************************************************************************************
 
 const request = SCHEMA === 'http' ? require('http') : require('https');
@@ -41,6 +41,8 @@ const DateTimeFormatter = new Intl.DateTimeFormat(undefined, {
 let progress = '0.0000';
 const log = (...args) => console.timeLog('Info', util.inspect(DateTimeFormatter.format(), { colors: true }), `${progress}%`, ...args);
 const error = (...args) => console.trace(util.inspect(DateTimeFormatter.format(), { colors: true }), `${progress}%`, ...args);
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const requestAgent = new request.Agent({
   keepAlive: true,
@@ -244,11 +246,19 @@ const getChildren = async (IP, index, jobId = '', id = '') => {
   while (retry--) {
     try {
       window = await fetchPath(IP, urlPath);
-      break;
+      if (window.document.querySelector('table')) {
+        break;
+      } else {
+        log('触发速率限制，等待 300 秒......');
+        await sleep(300e3);
+      }
     } catch(e) {
       error(e);
-      log(`重试（${retry}）......`);
     }
+    log(`重试（${retry}）......`);
+  }
+  if (retry <= 0) {
+    throw new Error('重试次数超出限制！直接重新运行此程序命令可以恢复进度从当前位置继续重试。');
   }
   const results = [];
   for (const tr of window.document.querySelectorAll(`.${LEVEL[index]}tr`)) {
@@ -331,10 +341,18 @@ const doJob = async (jobs, doneJob, index, write, IP, jobId = '', progressRatio 
     // 进入下一级节点
     if (hasChildren && job.url) {
       job.children = await getChildren(IP, index + 1, jobId, job.id.toString(10));
-      await doJob(job.children, doneJob, index + 1, write, IP, job.id.toString(10), [
-        progressIndex / jobs.length * progressRatio[1] + progressRatio[0],
-        progressRatio[1] / jobs.length,
-      ]);
+      if (job.children.length === 0) {
+        // 跳过这一层级
+        await doJob([{ ...job, name: '-' }], doneJob, index + 1, write, IP, jobId, [
+          progressIndex * progressRatio[1] + progressRatio[0],
+          progressRatio[1],
+        ]);
+      } else {
+        await doJob(job.children, doneJob, index + 1, write, IP, job.id.toString(10), [
+          progressIndex / jobs.length * progressRatio[1] + progressRatio[0],
+          progressRatio[1] / jobs.length,
+        ]);
+      }
     }
     await write('}');
     progress = (++progressIndex / jobs.length * progressRatio[1] + progressRatio[0]).toFixed(4);
