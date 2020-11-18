@@ -55,16 +55,13 @@
 
 > 省级代码为 2 位数。
 
-样例数据：
-<details><pre><code>
-[
+<details><summary>样例数据</summary><pre><code>[
   {
     "name": "北京市",
     "id": 11
   },
   ......
-]
-</code></pre></details>
+]</code></pre></details>
 
 ### 地级数据
 
@@ -76,9 +73,7 @@
 
 > 地级代码为 4 位数，包含前 2 位为省级代码。
 
-样例数据：
-<details><pre><code>
-[
+<details><summary>样例数据</summary><pre><code>[
   {
     "name": "北京市",
     "id": 11,
@@ -91,8 +86,7 @@
     ]
   },
   ......
-]
-</code></pre></details>
+]</code></pre></details>
 
 ### 县级数据
 
@@ -104,9 +98,7 @@
 
 > 县级代码为 6 位数，包含前 4 位为地级代码。
 
-样例数据：
-<details><pre><code>
-[
+<details><summary>样例数据</summary><pre><code>[
   {
     "name": "北京市",
     "id": 11,
@@ -126,8 +118,7 @@
     ]
   },
   ......
-]
-</code></pre></details>
+]</code></pre></details>
 
 ### 乡级数据
 
@@ -139,9 +130,7 @@
 
 > 乡级代码为 9 位数，包含前 6 位为县级代码。
 
-样例数据：
-<details><pre><code>
-[
+<details><summary>样例数据</summary><pre><code>[
   {
     "name": "北京市",
     "id": 11,
@@ -168,8 +157,7 @@
     ]
   },
   ......
-]
-</code></pre></details>
+]</code></pre></details>
 
 ### 村级数据
 
@@ -183,9 +171,7 @@
 >
 > 城乡分类代码为 3 位数。
 
-样例数据：
-<details><pre><code>
-[
+<details><summary>样例数据</summary><pre><code>[
   {
     "name": "北京市",
     "id": 11,
@@ -220,8 +206,7 @@
     ]
   },
   ......
-]
-</code></pre></details>
+]</code></pre></details>
 
 ## 统计用区划代码和城乡划分代码结构
 
