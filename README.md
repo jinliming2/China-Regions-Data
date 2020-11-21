@@ -1,4 +1,6 @@
 # China Regions Data
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjinliming2%2FChina-Regions-Data.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjinliming2%2FChina-Regions-Data?ref=badge_shield)
+
 
 最新最全的中国统计用区划代码和城乡划分代码，包含中国省、地、县、乡、村列表信息（不包含港、澳、台地区）。
 
@@ -242,3 +244,7 @@
     - 123：特殊区域
     - 210：乡中心区
     - 220：村庄
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjinliming2%2FChina-Regions-Data.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjinliming2%2FChina-Regions-Data?ref=badge_large)
